@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin(adminId) {
+      return isSignedIn() && request.auth.uid == adminId;
+    }
+
+    match /admins/{adminId} {
+      allow read, write: if false;
+
+      match /settings/{docId} {
+        allow read: if true;
+        allow write: if isAdmin(adminId);
+      }
+
+      match /pinned/{docId} {
+        allow read, write: if isAdmin(adminId);
+      }
+
+      match /orders/{orderId} {
+        allow get: if isAdmin(adminId)
+          || (isSignedIn() && resource.data.customerUid == request.auth.uid);
+        allow list: if isAdmin(adminId);
+        allow update, delete: if isAdmin(adminId);
+        allow create: if isSignedIn()
+          && request.resource.data.adminId == adminId
+          && request.resource.data.customerUid == request.auth.uid
+          && request.resource.data.status == 'Pending';
+      }
+    }
+  }
+}
