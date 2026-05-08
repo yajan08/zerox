@@ -1,7 +1,49 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Printer, ArrowRight, Zap, Shield, Clock } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Printer, ArrowRight, Zap, Shield, Clock, Loader2 } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function Home() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState<any>(null);
+
+  useEffect(() => {
+    // Check for current session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoading(false);
+      
+      // If we are already logged in (or just came back from an email link), 
+      // instantly redirect to dashboard automatically
+      if (session) {
+        router.push('/dashboard');
+      }
+    });
+
+    // Listen for auth state changes (e.g., when the magic link in email is clicked)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          router.push('/dashboard');
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, [router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-slate-900 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 relative overflow-hidden">
       <div className="absolute -top-24 -right-24 h-80 w-80 rounded-full bg-blue-100 blur-3xl opacity-60 pointer-events-none" />
@@ -17,9 +59,6 @@ export default function Home() {
         <div className="flex items-center space-x-4">
           <Link href="/login" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">
             Log in
-          </Link>
-          <Link href="/signup" className="text-sm font-medium bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors">
-            Register Shop
           </Link>
         </div>
       </nav>
@@ -41,12 +80,9 @@ export default function Home() {
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
-          <Link href="/signup" className="group flex items-center space-x-2 w-full sm:w-auto px-7 py-3.5 bg-slate-900 text-white rounded-xl font-medium hover:bg-slate-800 transition-all">
-            <span>Get Started</span>
+          <Link href="/signup" className="group flex items-center justify-center space-x-2 w-full sm:w-auto px-7 py-3.5 bg-slate-900 text-white rounded-xl font-medium hover:bg-slate-800 transition-all">
+            <span>Register your shop</span>
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </Link>
-          <Link href="/login" className="flex items-center space-x-2 w-full sm:w-auto px-7 py-3.5 bg-white text-slate-900 border border-slate-200 rounded-xl font-medium hover:border-slate-300 hover:bg-slate-50 transition-all">
-            <span>Admin Dashboard</span>
           </Link>
         </div>
 
