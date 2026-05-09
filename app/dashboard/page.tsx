@@ -42,9 +42,14 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <nav className="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center">
         <div className="font-bold text-xl">{shopName} Dashboard</div>
-        <button onClick={handleLogout} className="text-sm font-medium text-slate-600 hover:text-slate-900">
-          Log out
-        </button>
+        <div className="flex items-center space-x-6">
+          <button onClick={() => router.push('/dashboard/profile')} className="text-sm font-medium text-slate-600 hover:text-slate-900">
+            Shop Profile & QR
+          </button>
+          <button onClick={handleLogout} className="text-sm font-medium text-slate-600 hover:text-slate-900">
+            Log out
+          </button>
+        </div>
       </nav>
 
       <main className="max-w-6xl mx-auto p-6 mt-8">
