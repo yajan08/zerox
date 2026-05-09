@@ -1,18 +1,87 @@
 'use client';
-import { useState, use } from 'react';
-import { UploadCloud, FileText } from 'lucide-react';
+import { useState, use, useEffect } from 'react';
+import { UploadCloud, FileText, CheckCircle } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function ShopDropBoxPage({ params }: { params: Promise<{ shopId: string }> }) {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const resolvedParams = use(params);
+
+  useEffect(() => {
+    // Log the user in anonymously if they aren't already, so they bypass upload RLS
+    const initAnonAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        await supabase.auth.signInAnonymously();
+      }
+    };
+    initAnonAuth();
+  }, []);
 
   const handleUpload = async (e: React.FormEvent) => { 
     e.preventDefault(); 
+    if (!file) return;
+
     setUploading(true);
-    // TODO: Upload logic goes here next!
-    setTimeout(() => setUploading(false), 1000); 
+    setErrorMsg('');
+    
+    try {
+      // 1. Clean the filename to store it safely in the path without a separate column
+      const safeOriginalName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const fileName = `${Date.now()}_${safeOriginalName}`;
+      const filePath = `${resolvedParams.shopId}/${fileName}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('xerox-files')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // 2. Fetch the anonymous user ID to link to the order
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // 3. Add to orders table exactly matching your existing schema
+      const { error: dbError } = await supabase
+        .from('orders')
+        .insert({
+          shop_id: resolvedParams.shopId,
+          customer_id: user?.id,
+          file_path: filePath,
+          quantity: 1,
+          color_mode: 'bw',
+          status: 'pending'
+        });
+
+      if (dbError) throw dbError;
+
+      setIsSuccess(true);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'An error occurred during upload.');
+    } finally {
+      setUploading(false);
+    }
   };
+
+  if (isSuccess) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
+        <CheckCircle className="w-16 h-16 text-emerald-500 mb-4" />
+        <h1 className="text-3xl font-extrabold text-slate-900 mb-2 text-center">Sent Successfully!</h1>
+        <p className="text-slate-600 text-center mb-8">
+          The print shop has received your file. Please talk to the owner for pricing and payment.
+        </p>
+        <button 
+          onClick={() => { setIsSuccess(false); setFile(null); }}
+          className="bg-slate-900 text-white px-6 py-3 rounded-xl font-medium hover:bg-slate-800"
+        >
+          Send Another Document
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 flex flex-col items-center py-10 px-4 relative overflow-hidden">
@@ -31,6 +100,12 @@ export default function ShopDropBoxPage({ params }: { params: Promise<{ shopId: 
         </p>
 
         <form onSubmit={handleUpload} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 w-full flex flex-col space-y-6">
+          
+          {errorMsg && (
+            <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm text-center">
+              {errorMsg}
+            </div>
+          )}
           
           <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center text-center hover:bg-slate-50 transition-colors relative cursor-pointer">
             <input 
