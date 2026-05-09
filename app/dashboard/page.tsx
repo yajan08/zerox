@@ -55,11 +55,6 @@ export default function DashboardPage() {
       <main className="max-w-6xl mx-auto p-6 mt-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-extrabold tracking-tight">Print Queue</h1>
-          {userId && (
-            <div className="bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm text-sm font-mono text-slate-600">
-              QR Link: /shop/{userId}
-            </div>
-          )}
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center text-slate-500 shadow-sm">

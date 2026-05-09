@@ -145,7 +145,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Right Col: QR Code - This is the ONLY thing shown when printing */}
-        <div className="w-full md:w-80 flex flex-col items-center print:w-full print:block print:absolute print:top-0 print:left-0 print:h-screen print:flex print:flex-col print:items-center print:justify-center">
+        <div className="w-full md:w-80 flex flex-col items-center print:w-full print:flex print:flex-col print:items-center print:mt-24">
           <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm w-full flex flex-col items-center print:border-none print:shadow-none print:p-0">
             
             {/* Massive heading only visible on the printed paper */}
