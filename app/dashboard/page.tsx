@@ -401,10 +401,15 @@ export default function DashboardPage() {
                       {formatFilename(order.file_path)}
                     </h3>
                     <div className="flex items-center space-x-3 mt-1 text-sm text-slate-500">
+                      <span className="font-medium text-slate-800">{order.customer_name || 'Anonymous'}</span>
+                      <span className="text-xs">{order.customer_phone || ''}</span>
+                    </div>
+                    <div className="flex items-center space-x-3 mt-2 text-sm text-slate-500">
                       <span className="bg-slate-100 px-2 py-0.5 rounded font-medium text-slate-700">Qty: {order.quantity}</span>
-                      <span className={`px-2 py-0.5 rounded font-medium uppercase text-xs ${order.color_mode === 'color' ? 'bg-purple-100 text-purple-700' : 'bg-slate-200 text-slate-800'}`}>
-                        {order.color_mode}
+                      <span className={`px-2 py-0.5 rounded font-medium uppercase text-xs ${order.color_mode.includes('color') ? 'bg-purple-100 text-purple-700' : 'bg-slate-200 text-slate-800'}`}>
+                        {order.color_mode.replace('_', ' ')}
                       </span>
+                      <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">₹{order.total_cost || 0}</span>
                       <span>•</span>
                       <span>Arrived {new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                     </div>
