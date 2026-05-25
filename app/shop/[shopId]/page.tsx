@@ -94,16 +94,30 @@ export default function ShopDropBoxPage({ params }: { params: Promise<{ shopId: 
   };
 
   if (isSuccess) {
+    const upiLink = shopInfo?.upi_id 
+      ? `upi://pay?pa=${shopInfo.upi_id}&pn=${encodeURIComponent(shopInfo.store_name || 'Print Shop')}&am=${totalCost.toFixed(2)}&cu=INR&tn=${encodeURIComponent(`Print Order for ${name}`)}`
+      : '';
+
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
         <CheckCircle className="w-16 h-16 text-emerald-500 mb-4" />
         <h1 className="text-3xl font-extrabold text-slate-900 mb-2 text-center">Sent Successfully!</h1>
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8 max-w-sm w-full text-center">
-          <p className="text-slate-500 text-sm mb-2">Total Amount to Pay</p>
+          <p className="text-slate-500 text-sm mb-2">Total Amount</p>
           <p className="text-4xl font-black text-slate-900 mb-4">₹{totalCost.toFixed(2)}</p>
-          <p className="text-slate-600 text-sm">
-            Please show your name (<strong>{name}</strong>) to the shop owner after you receive your prints to pay and collect.
+          <p className="text-slate-600 text-sm mb-6">
+            Please show your name (<strong>{name}</strong>) to the shop owner after you receive your prints to collect.
           </p>
+          
+          {upiLink && totalCost > 0 && (
+            <a 
+              href={upiLink}
+              className="flex items-center justify-center space-x-2 w-full bg-emerald-600 text-white px-6 py-3.5 rounded-xl font-semibold hover:bg-emerald-700 transition"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-5 h-5 text-white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+              <span>Pay ₹{totalCost.toFixed(2)} via UPI</span>
+            </a>
+          )}
         </div>
         <button 
           onClick={() => { setIsSuccess(false); setFile(null); }}

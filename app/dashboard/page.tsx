@@ -13,6 +13,7 @@ export default function DashboardPage() {
   const [pricingBwDouble, setPricingBwDouble] = useState('0');
   const [pricingColorSingle, setPricingColorSingle] = useState('0');
   const [pricingColorDouble, setPricingColorDouble] = useState('0');
+  const [upiId, setUpiId] = useState('');
   
   const [initialData, setInitialData] = useState<any>(null);
   const [hasChanges, setHasChanges] = useState(false);
@@ -80,10 +81,13 @@ export default function DashboardPage() {
         if (shopData.pricing_color_double !== undefined && shopData.pricing_color_double !== null) {
           setPricingColorDouble(shopData.pricing_color_double.toString());
         }
+        
+        if (shopData.upi_id) setUpiId(shopData.upi_id);
 
         // Store a snapshot of what came from the DB to compare later
         setInitialData({
           store_name: shopData.store_name,
+          upi_id: shopData.upi_id || '',
           pricing_bw: shopData.pricing_bw !== null ? shopData.pricing_bw.toString() : '0',
           pricing_bw_double: shopData.pricing_bw_double !== null && shopData.pricing_bw_double !== undefined ? shopData.pricing_bw_double.toString() : '0',
           pricing_color: shopData.pricing_color !== null ? shopData.pricing_color.toString() : '0',
@@ -121,6 +125,7 @@ export default function DashboardPage() {
     if (initialData) {
       const isChanged = 
         shopName !== initialData.store_name ||
+        upiId !== initialData.upi_id ||
         pricingBwSingle !== initialData.pricing_bw ||
         pricingBwDouble !== initialData.pricing_bw_double ||
         pricingColorSingle !== initialData.pricing_color ||
@@ -128,7 +133,7 @@ export default function DashboardPage() {
 
       setHasChanges(isChanged);
     }
-  }, [shopName, pricingBwSingle, pricingBwDouble, pricingColorSingle, pricingColorDouble, initialData]);
+  }, [shopName, upiId, pricingBwSingle, pricingBwDouble, pricingColorSingle, pricingColorDouble, initialData]);
 
   const fetchOrders = async (shopId: string) => {
     const { data, error } = await supabase
@@ -157,6 +162,7 @@ export default function DashboardPage() {
         .from('shops')
         .update({ 
           store_name: shopName,
+          upi_id: upiId,
           pricing_bw: parseFloat(pricingBwSingle),
           pricing_bw_double: parseFloat(pricingBwDouble),
           pricing_color: parseFloat(pricingColorSingle),
@@ -169,6 +175,7 @@ export default function DashboardPage() {
       // Update our snapshot to match what we just saved to the DB
       setInitialData({
         store_name: shopName,
+        upi_id: upiId,
         pricing_bw: pricingBwSingle,
         pricing_bw_double: pricingBwDouble,
         pricing_color: pricingColorSingle,
@@ -344,6 +351,17 @@ export default function DashboardPage() {
                 <label className="block text-xs font-medium text-slate-500 mb-1">Color Double (₹)</label>
                 <input type="number" step="0.5" min="0" value={pricingColorDouble} onChange={(e) => setPricingColorDouble(e.target.value)} className="w-full p-2.5 text-sm border border-slate-200 rounded-lg focus:border-slate-800 focus:ring-1 focus:ring-slate-800 focus:outline-none transition-colors text-slate-900" />
               </div>
+            </div>
+            
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">Store UPI ID (For Payments)</label>
+              <input 
+                type="text" 
+                value={upiId}
+                onChange={(e) => setUpiId(e.target.value)}
+                placeholder="e.g. yourname@upi"
+                className="w-full p-2.5 text-sm border border-slate-200 rounded-lg focus:border-slate-800 focus:ring-1 focus:ring-slate-800 focus:outline-none transition-colors text-slate-900" 
+              />
             </div>
             
             <button 
