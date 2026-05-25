@@ -113,7 +113,7 @@ export default function DashboardPage() {
       .select('*')
       .eq('shop_id', shopId)
       .eq('status', 'pending')
-      .order('created_at', { ascending: true }); // Oldest first (first in, first out)
+      .order('created_at', { ascending: false }); // Newest first (latest on top)
     
     if (data) setOrders(data);
   };
