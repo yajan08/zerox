@@ -13,6 +13,7 @@ export default function DashboardPage() {
   const [pricingBwDouble, setPricingBwDouble] = useState('0');
   const [pricingColorSingle, setPricingColorSingle] = useState('0');
   const [pricingColorDouble, setPricingColorDouble] = useState('0');
+  const [upiId, setUpiId] = useState('');
   
   const [initialData, setInitialData] = useState<any>(null);
   const [hasChanges, setHasChanges] = useState(false);
@@ -39,11 +40,34 @@ export default function DashboardPage() {
       }
       setUserId(session.user.id);
       
-      const { data: shopData } = await supabase
+      let { data: shopData, error: fetchError } = await supabase
         .from('shops')
         .select('*')
         .eq('id', session.user.id)
         .single();
+        
+      // If the shop row doesn't exist yet, create it on the fly
+      if (!shopData) {
+        console.warn('Shop not found, creating...', fetchError);
+        const fallbackName = session.user.user_metadata?.store_name || 'My Print Shop';
+        const { data: newShop, error: insertError } = await supabase
+          .from('shops')
+          .insert({
+            id: session.user.id,
+            store_name: fallbackName,
+            pricing_bw: 2,
+            pricing_bw_double: 3,
+            pricing_color: 5,
+            pricing_color_double: 8,
+          })
+          .select()
+          .single();
+          
+        if (insertError) {
+          console.error("Failed to auto-create shop:", insertError);
+        }
+        shopData = newShop;
+      }
         
       if (shopData) {
         setShopName(shopData.store_name);
@@ -57,10 +81,13 @@ export default function DashboardPage() {
         if (shopData.pricing_color_double !== undefined && shopData.pricing_color_double !== null) {
           setPricingColorDouble(shopData.pricing_color_double.toString());
         }
+        
+        if (shopData.upi_id) setUpiId(shopData.upi_id);
 
         // Store a snapshot of what came from the DB to compare later
         setInitialData({
           store_name: shopData.store_name,
+          upi_id: shopData.upi_id || '',
           pricing_bw: shopData.pricing_bw !== null ? shopData.pricing_bw.toString() : '0',
           pricing_bw_double: shopData.pricing_bw_double !== null && shopData.pricing_bw_double !== undefined ? shopData.pricing_bw_double.toString() : '0',
           pricing_color: shopData.pricing_color !== null ? shopData.pricing_color.toString() : '0',
@@ -98,6 +125,7 @@ export default function DashboardPage() {
     if (initialData) {
       const isChanged = 
         shopName !== initialData.store_name ||
+        upiId !== initialData.upi_id ||
         pricingBwSingle !== initialData.pricing_bw ||
         pricingBwDouble !== initialData.pricing_bw_double ||
         pricingColorSingle !== initialData.pricing_color ||
@@ -105,7 +133,7 @@ export default function DashboardPage() {
 
       setHasChanges(isChanged);
     }
-  }, [shopName, pricingBwSingle, pricingBwDouble, pricingColorSingle, pricingColorDouble, initialData]);
+  }, [shopName, upiId, pricingBwSingle, pricingBwDouble, pricingColorSingle, pricingColorDouble, initialData]);
 
   const fetchOrders = async (shopId: string) => {
     const { data, error } = await supabase
@@ -113,7 +141,7 @@ export default function DashboardPage() {
       .select('*')
       .eq('shop_id', shopId)
       .eq('status', 'pending')
-      .order('created_at', { ascending: true }); // Oldest first (first in, first out)
+      .order('created_at', { ascending: false }); // Newest first (latest on top)
     
     if (data) setOrders(data);
   };
@@ -134,6 +162,7 @@ export default function DashboardPage() {
         .from('shops')
         .update({ 
           store_name: shopName,
+          upi_id: upiId,
           pricing_bw: parseFloat(pricingBwSingle),
           pricing_bw_double: parseFloat(pricingBwDouble),
           pricing_color: parseFloat(pricingColorSingle),
@@ -146,6 +175,7 @@ export default function DashboardPage() {
       // Update our snapshot to match what we just saved to the DB
       setInitialData({
         store_name: shopName,
+        upi_id: upiId,
         pricing_bw: pricingBwSingle,
         pricing_bw_double: pricingBwDouble,
         pricing_color: pricingColorSingle,
@@ -303,24 +333,35 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1">B&W Single (₹)</label>
-                <input type="number" step="0.5" value={pricingBwSingle} onChange={(e) => {
+                <input type="number" step="0.5" min="0" value={pricingBwSingle} onChange={(e) => {
                   setPricingBwSingle(e.target.value);
                 }} className="w-full p-2.5 text-sm border border-slate-200 rounded-lg focus:border-slate-800 focus:ring-1 focus:ring-slate-800 focus:outline-none transition-colors text-slate-900" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1">B&W Double (₹)</label>
-                <input type="number" step="0.5" value={pricingBwDouble} onChange={(e) => setPricingBwDouble(e.target.value)} className="w-full p-2.5 text-sm border border-slate-200 rounded-lg focus:border-slate-800 focus:ring-1 focus:ring-slate-800 focus:outline-none transition-colors text-slate-900" />
+                <input type="number" step="0.5" min="0" value={pricingBwDouble} onChange={(e) => setPricingBwDouble(e.target.value)} className="w-full p-2.5 text-sm border border-slate-200 rounded-lg focus:border-slate-800 focus:ring-1 focus:ring-slate-800 focus:outline-none transition-colors text-slate-900" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1">Color Single (₹)</label>
-                <input type="number" step="0.5" value={pricingColorSingle} onChange={(e) => {
+                <input type="number" step="0.5" min="0" value={pricingColorSingle} onChange={(e) => {
                   setPricingColorSingle(e.target.value);
                 }} className="w-full p-2.5 text-sm border border-slate-200 rounded-lg focus:border-slate-800 focus:ring-1 focus:ring-slate-800 focus:outline-none transition-colors text-slate-900" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1">Color Double (₹)</label>
-                <input type="number" step="0.5" value={pricingColorDouble} onChange={(e) => setPricingColorDouble(e.target.value)} className="w-full p-2.5 text-sm border border-slate-200 rounded-lg focus:border-slate-800 focus:ring-1 focus:ring-slate-800 focus:outline-none transition-colors text-slate-900" />
+                <input type="number" step="0.5" min="0" value={pricingColorDouble} onChange={(e) => setPricingColorDouble(e.target.value)} className="w-full p-2.5 text-sm border border-slate-200 rounded-lg focus:border-slate-800 focus:ring-1 focus:ring-slate-800 focus:outline-none transition-colors text-slate-900" />
               </div>
+            </div>
+            
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">Store UPI ID (For Payments)</label>
+              <input 
+                type="text" 
+                value={upiId}
+                onChange={(e) => setUpiId(e.target.value)}
+                placeholder="e.g. yourname@upi"
+                className="w-full p-2.5 text-sm border border-slate-200 rounded-lg focus:border-slate-800 focus:ring-1 focus:ring-slate-800 focus:outline-none transition-colors text-slate-900" 
+              />
             </div>
             
             <button 
@@ -378,10 +419,15 @@ export default function DashboardPage() {
                       {formatFilename(order.file_path)}
                     </h3>
                     <div className="flex items-center space-x-3 mt-1 text-sm text-slate-500">
+                      <span className="font-medium text-slate-800">{order.customer_name || 'Anonymous'}</span>
+                      <span className="text-xs">{order.customer_phone || ''}</span>
+                    </div>
+                    <div className="flex items-center space-x-3 mt-2 text-sm text-slate-500">
                       <span className="bg-slate-100 px-2 py-0.5 rounded font-medium text-slate-700">Qty: {order.quantity}</span>
-                      <span className={`px-2 py-0.5 rounded font-medium uppercase text-xs ${order.color_mode === 'color' ? 'bg-purple-100 text-purple-700' : 'bg-slate-200 text-slate-800'}`}>
-                        {order.color_mode}
+                      <span className={`px-2 py-0.5 rounded font-medium uppercase text-xs ${order.color_mode.includes('color') ? 'bg-purple-100 text-purple-700' : 'bg-slate-200 text-slate-800'}`}>
+                        {order.color_mode.replace('_', ' ')}
                       </span>
+                      <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">₹{order.total_cost || 0}</span>
                       <span>•</span>
                       <span>Arrived {new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                     </div>
