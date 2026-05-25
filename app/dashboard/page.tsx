@@ -39,11 +39,34 @@ export default function DashboardPage() {
       }
       setUserId(session.user.id);
       
-      const { data: shopData } = await supabase
+      let { data: shopData, error: fetchError } = await supabase
         .from('shops')
         .select('*')
         .eq('id', session.user.id)
         .single();
+        
+      // If the shop row doesn't exist yet, create it on the fly
+      if (!shopData) {
+        console.warn('Shop not found, creating...', fetchError);
+        const fallbackName = session.user.user_metadata?.store_name || 'My Print Shop';
+        const { data: newShop, error: insertError } = await supabase
+          .from('shops')
+          .insert({
+            id: session.user.id,
+            store_name: fallbackName,
+            pricing_bw: 2,
+            pricing_bw_double: 3,
+            pricing_color: 5,
+            pricing_color_double: 8,
+          })
+          .select()
+          .single();
+          
+        if (insertError) {
+          console.error("Failed to auto-create shop:", insertError);
+        }
+        shopData = newShop;
+      }
         
       if (shopData) {
         setShopName(shopData.store_name);
@@ -303,23 +326,23 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1">B&W Single (₹)</label>
-                <input type="number" step="0.5" value={pricingBwSingle} onChange={(e) => {
+                <input type="number" step="0.5" min="0" value={pricingBwSingle} onChange={(e) => {
                   setPricingBwSingle(e.target.value);
                 }} className="w-full p-2.5 text-sm border border-slate-200 rounded-lg focus:border-slate-800 focus:ring-1 focus:ring-slate-800 focus:outline-none transition-colors text-slate-900" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1">B&W Double (₹)</label>
-                <input type="number" step="0.5" value={pricingBwDouble} onChange={(e) => setPricingBwDouble(e.target.value)} className="w-full p-2.5 text-sm border border-slate-200 rounded-lg focus:border-slate-800 focus:ring-1 focus:ring-slate-800 focus:outline-none transition-colors text-slate-900" />
+                <input type="number" step="0.5" min="0" value={pricingBwDouble} onChange={(e) => setPricingBwDouble(e.target.value)} className="w-full p-2.5 text-sm border border-slate-200 rounded-lg focus:border-slate-800 focus:ring-1 focus:ring-slate-800 focus:outline-none transition-colors text-slate-900" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1">Color Single (₹)</label>
-                <input type="number" step="0.5" value={pricingColorSingle} onChange={(e) => {
+                <input type="number" step="0.5" min="0" value={pricingColorSingle} onChange={(e) => {
                   setPricingColorSingle(e.target.value);
                 }} className="w-full p-2.5 text-sm border border-slate-200 rounded-lg focus:border-slate-800 focus:ring-1 focus:ring-slate-800 focus:outline-none transition-colors text-slate-900" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1">Color Double (₹)</label>
-                <input type="number" step="0.5" value={pricingColorDouble} onChange={(e) => setPricingColorDouble(e.target.value)} className="w-full p-2.5 text-sm border border-slate-200 rounded-lg focus:border-slate-800 focus:ring-1 focus:ring-slate-800 focus:outline-none transition-colors text-slate-900" />
+                <input type="number" step="0.5" min="0" value={pricingColorDouble} onChange={(e) => setPricingColorDouble(e.target.value)} className="w-full p-2.5 text-sm border border-slate-200 rounded-lg focus:border-slate-800 focus:ring-1 focus:ring-slate-800 focus:outline-none transition-colors text-slate-900" />
               </div>
             </div>
             
